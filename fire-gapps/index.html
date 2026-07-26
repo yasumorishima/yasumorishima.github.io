@@ -1,0 +1,843 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Fire タブレットの Fire OS を自動判定して、Google Play 導入に必要な APK 4本をインストール順に表示する非公式ヘルパー（自己責任）。">
+<meta name="color-scheme" content="light dark">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body, h1, h2, h3, p, ol, ul, figure { margin: 0; }
+  ol, ul { padding: 0; }
+  img { max-width: 100%; display: block; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  a { color: inherit; }
+</style>
+<title>Fire タブレット Google Play 導入ヘルパー</title>
+</head>
+<body>
+<style>
+  :root {
+    --ink:        #141a21;
+    --paper:      #eef1f4;
+    --card:       #ffffff;
+    --card-edge:  #d7dde4;
+    --text:       #222c37;
+    --text-dim:   #5c6874;
+    --text-faint: #8a959f;
+    --ember:      #e05a1c;
+    --ember-soft: #fdeee5;
+    --signal:     #1a7a99;
+    --signal-soft:#e4f1f5;
+    --ok:         #14775b;
+    --ok-soft:    #e2f1ec;
+    --warn:       #8c6100;
+    --warn-soft:  #f8efd8;
+    --danger:     #b8352c;
+    --danger-soft:#faeae8;
+    --rail:       #dbe1e8;
+    --shadow:     0 1px 2px rgba(20,26,33,.06), 0 6px 20px rgba(20,26,33,.05);
+
+    --jp: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "BIZ UDPGothic",
+          "Yu Gothic UI", "Yu Gothic", "Noto Sans JP", "Meiryo", system-ui, sans-serif;
+    --mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas,
+            "Roboto Mono", "Droid Sans Mono", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:      #10161d;
+      --card:       #1a222c;
+      --card-edge:  #2c3743;
+      --text:       #dde4ea;
+      --text-dim:   #9aa7b3;
+      --text-faint: #6d7b88;
+      --ember:      #ff7a3d;
+      --ember-soft: #33200f;
+      --signal:     #4fb6d4;
+      --signal-soft:#102b34;
+      --ok:         #47c39c;
+      --ok-soft:    #102a23;
+      --warn:       #d9a63a;
+      --warn-soft:  #2e2410;
+      --danger:     #f0776c;
+      --danger-soft:#331715;
+      --rail:       #2c3743;
+      --shadow:     0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.28);
+    }
+  }
+  :root[data-theme="light"] {
+    --paper:#eef1f4; --card:#ffffff; --card-edge:#d7dde4; --text:#222c37;
+    --text-dim:#5c6874; --text-faint:#8a959f; --ember:#e05a1c; --ember-soft:#fdeee5;
+    --signal:#1a7a99; --signal-soft:#e4f1f5; --ok:#14775b; --ok-soft:#e2f1ec;
+    --warn:#8c6100; --warn-soft:#f8efd8; --danger:#b8352c; --danger-soft:#faeae8;
+    --rail:#dbe1e8; --shadow:0 1px 2px rgba(20,26,33,.06), 0 6px 20px rgba(20,26,33,.05);
+  }
+  :root[data-theme="dark"] {
+    --paper:#10161d; --card:#1a222c; --card-edge:#2c3743; --text:#dde4ea;
+    --text-dim:#9aa7b3; --text-faint:#6d7b88; --ember:#ff7a3d; --ember-soft:#33200f;
+    --signal:#4fb6d4; --signal-soft:#102b34; --ok:#47c39c; --ok-soft:#102a23;
+    --warn:#d9a63a; --warn-soft:#2e2410; --danger:#f0776c; --danger-soft:#331715;
+    --rail:#2c3743; --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.28);
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--text);
+    font-family: var(--jp);
+    font-size: 16px;
+    line-height: 1.75;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 28px 18px 96px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  h1, h2, h3 { text-wrap: balance; line-height: 1.3; }
+  h1 { font-size: 27px; font-weight: 800; letter-spacing: -.02em; }
+  h2 { font-size: 19px; font-weight: 800; letter-spacing: -.01em; }
+  h3 { font-size: 16px; font-weight: 700; }
+  p  { color: var(--text-dim); }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  /* ---- masthead ---- */
+  .masthead { display: flex; flex-direction: column; gap: 8px; }
+  .masthead p { font-size: 14px; }
+
+  /* ---- readout: the detector ---- */
+  .readout {
+    background: var(--card);
+    border: 1px solid var(--card-edge);
+    border-radius: 4px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .readout-top {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 18px 20px;
+  }
+  .osnum {
+    font-family: var(--mono);
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -.04em;
+    color: var(--ember);
+    font-variant-numeric: tabular-nums;
+    min-width: 62px;
+    text-align: center;
+  }
+  .osnum.unknown { color: var(--text-faint); font-size: 40px; }
+  .readout-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .readout-body .lead { font-size: 17px; font-weight: 700; }
+  .readout-body .sub  { font-size: 13px; color: var(--text-dim); }
+  .ua {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    word-break: break-all;
+    line-height: 1.5;
+  }
+  .readout-foot {
+    border-top: 1px solid var(--card-edge);
+    padding: 12px 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .readout-foot label { font-size: 13px; color: var(--text-dim); }
+  select {
+    font-family: var(--jp);
+    font-size: 15px;
+    padding: 10px 12px;
+    width: 100%;
+    color: var(--text);
+    background: var(--paper);
+    border: 1px solid var(--card-edge);
+    border-radius: 3px;
+  }
+
+  .flag {
+    display: flex;
+    gap: 10px;
+    padding: 12px 16px;
+    font-size: 13.5px;
+    line-height: 1.65;
+    border-left: 3px solid;
+    border-radius: 0 3px 3px 0;
+  }
+  .flag strong { font-weight: 700; }
+  .flag.warn   { background: var(--warn-soft);   border-color: var(--warn);   color: var(--warn); }
+  .flag.danger { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
+  .flag.info   { background: var(--signal-soft); border-color: var(--signal); color: var(--signal); }
+  .flag .body { color: var(--text); flex: 1; min-width: 0; }
+  .flag .tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding-top: 4px;
+    white-space: nowrap;
+  }
+
+  /* ---- progress ---- */
+  .progress { display: flex; flex-direction: column; gap: 7px; }
+  .progress-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 12px; color: var(--text-dim);
+  }
+  .progress-head b { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--text); }
+  .bar { height: 5px; background: var(--rail); border-radius: 3px; overflow: hidden; }
+  .bar > i {
+    display: block; height: 100%; width: 0;
+    background: linear-gradient(90deg, #d0431a, var(--ember));
+    transition: width .35s ease;
+  }
+  @media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
+
+  /* ---- sections ---- */
+  section { display: flex; flex-direction: column; gap: 14px; }
+  .sec-head { display: flex; flex-direction: column; gap: 2px; }
+  .sec-head p { font-size: 13.5px; }
+
+  /* ---- checklist ---- */
+  .checklist { display: flex; flex-direction: column; gap: 2px; }
+  .check {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 13px 16px;
+    background: var(--card);
+    border: 1px solid var(--card-edge);
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14.5px;
+    line-height: 1.6;
+  }
+  .check + .check { margin-top: -1px; }
+  .check:hover { border-color: var(--ember); position: relative; z-index: 1; }
+  .check input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .box {
+    flex: 0 0 auto; width: 22px; height: 22px; margin-top: 2px;
+    border: 2px solid var(--card-edge); border-radius: 3px;
+    display: grid; place-items: center;
+    color: transparent; font-size: 14px; font-weight: 800; line-height: 1;
+  }
+  .check input:checked ~ .box { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .check input:focus-visible ~ .box { outline: 3px solid var(--ember); outline-offset: 2px; }
+  .check input:checked ~ .txt { color: var(--text-faint); text-decoration: line-through; }
+  .txt { flex: 1; min-width: 0; }
+  .txt small { display: block; font-size: 12.5px; color: var(--text-faint); text-decoration: none; }
+
+  /* ---- apk steps ---- */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+  .step {
+    background: var(--card);
+    border: 1px solid var(--card-edge);
+    border-radius: 4px;
+    box-shadow: var(--shadow);
+    padding: 16px 18px;
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    gap: 4px 14px;
+    align-items: start;
+  }
+  .step.locked { opacity: .45; box-shadow: none; }
+  .step.done { border-color: var(--ok); }
+  .ord {
+    grid-row: 1 / span 4;
+    width: 34px; height: 34px;
+    display: grid; place-items: center;
+    border-radius: 50%;
+    font-family: var(--mono); font-weight: 700; font-size: 15px;
+    background: var(--ember-soft); color: var(--ember);
+    border: 1px solid var(--ember);
+  }
+  .step.done .ord { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .step-name { font-size: 16px; font-weight: 700; }
+  .step-ver { font-size: 12.5px; color: var(--text-dim); font-family: var(--mono); word-break: break-all; }
+  .fname {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: var(--text-faint);
+    word-break: break-all;
+    background: var(--paper);
+    border-radius: 3px;
+    padding: 7px 9px;
+    margin-top: 6px;
+  }
+  .fname b {
+    color: var(--text);
+    background: var(--ember-soft);
+    box-shadow: 0 0 0 2px var(--ember-soft);
+    font-weight: 700;
+  }
+  .step-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: var(--jp); font-size: 14.5px; font-weight: 700;
+    padding: 11px 16px; border-radius: 3px;
+    background: var(--ember); color: #fff;
+    border: 1px solid transparent;
+    text-decoration: none; cursor: pointer;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn:focus-visible { outline: 3px solid var(--signal); outline-offset: 2px; }
+  .btn.ghost { background: transparent; color: var(--text-dim); border-color: var(--card-edge); }
+  .btn.ghost:hover { color: var(--ember); border-color: var(--ember); filter: none; }
+  .btn[aria-disabled="true"] { pointer-events: none; opacity: .4; }
+
+  .toggle {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    padding: 10px 14px; border-radius: 3px;
+    border: 1px solid var(--card-edge); color: var(--text-dim);
+    background: transparent;
+  }
+  .toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .toggle .dot {
+    width: 16px; height: 16px; border-radius: 3px;
+    border: 2px solid var(--card-edge);
+    display: grid; place-items: center; font-size: 11px; color: transparent; line-height: 1;
+  }
+  .toggle input:checked ~ .dot { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .toggle:has(input:checked) { color: var(--ok); border-color: var(--ok); background: var(--ok-soft); }
+  .toggle input:focus-visible ~ .dot { outline: 3px solid var(--ember); outline-offset: 2px; }
+
+  .lockmsg {
+    grid-column: 1 / -1;
+    font-size: 12.5px; color: var(--text-faint);
+    display: flex; align-items: center; gap: 7px; margin-top: 8px;
+  }
+
+  .gate {
+    padding: 16px 18px;
+    border: 1px dashed var(--card-edge);
+    border-radius: 4px;
+    font-size: 14px;
+    color: var(--text-dim);
+    text-align: center;
+  }
+
+  .models {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .chip {
+    font-size: 12.5px; padding: 4px 10px; border-radius: 999px;
+    background: var(--signal-soft); color: var(--signal); font-weight: 700;
+  }
+
+  ol.plain, ul.plain { padding-left: 1.3em; color: var(--text-dim); font-size: 14.5px; }
+  ol.plain li, ul.plain li { margin: 4px 0; }
+
+  footer {
+    border-top: 1px solid var(--card-edge);
+    padding-top: 18px;
+    font-size: 12.5px;
+    color: var(--text-faint);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  footer a { color: var(--signal); }
+  .disclaimer { display: flex; flex-direction: column; gap: 8px; }
+  .disclaimer p { font-size: 12.5px; line-height: 1.7; color: var(--text-faint); }
+  .disclaimer strong { color: var(--text-dim); font-weight: 700; }
+  .resetbar { display: flex; justify-content: flex-end; }
+
+  @media (max-width: 420px) {
+    .readout-top { gap: 12px; padding: 16px; }
+    .osnum { font-size: 42px; min-width: 50px; }
+    h1 { font-size: 23px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <span class="eyebrow">Fire Tablet / Google Play sideload</span>
+    <h1>Fire OS を自動判定して、入れる APK を4本だけ出す</h1>
+    <p>この端末で開くと Fire OS のバージョンを判定し、対応する APK を<strong>インストール順どおり</strong>に並べます。順番と進捗はこの画面が覚えるので、途中で分からなくなりません。</p>
+  </div>
+
+  <div class="readout">
+    <div class="readout-top">
+      <div class="osnum unknown" id="osnum">?</div>
+      <div class="readout-body">
+        <div class="lead" id="oslead">判定中…</div>
+        <div class="sub" id="ossub"></div>
+        <div class="ua" id="ua"></div>
+      </div>
+    </div>
+    <div class="readout-foot">
+      <label for="ossel">判定が違う場合・PC で見ている場合は手動で選択</label>
+      <select id="ossel">
+        <option value="auto">自動判定にまかせる</option>
+        <option value="5">Fire OS 5（Android 5.1 相当）</option>
+        <option value="6">Fire OS 6（Android 7.1 相当）</option>
+        <option value="7">Fire OS 7（Android 9 相当）</option>
+        <option value="8">Fire OS 8（Android 11 相当）</option>
+      </select>
+      <div class="models" id="models"></div>
+    </div>
+  </div>
+
+  <div id="flags" style="display:flex;flex-direction:column;gap:8px"></div>
+
+  <div class="progress">
+    <div class="progress-head">
+      <span>進捗</span>
+      <span><b id="pcount">0</b> / 8 ステップ</span>
+    </div>
+    <div class="bar"><i id="pbar"></i></div>
+  </div>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Step 0</span>
+      <h2>作業前の準備</h2>
+      <p>ここを飛ばすと後で失敗します。全部チェックが付くまでダウンロードに進まないでください。</p>
+    </div>
+    <div class="checklist" id="preflight"></div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Step 1</span>
+      <h2>4本ダウンロード</h2>
+      <p>Silk ブラウザで開いて『DOWNLOAD APK』をタップ。<strong>ダウンロード後に『開く』は押さない</strong>で、4本すべて落としきってください。</p>
+    </div>
+    <div class="steps" id="dlsteps"></div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Step 2</span>
+      <h2>順番どおりにインストール</h2>
+      <p>Silk の【メニュー ⋮】→『ダウンロード』で一覧を開き、<strong>この順番で</strong>タップします。ファイル名の色付き部分で見分けます。前の1本を終えるまで次は開きません。</p>
+    </div>
+    <div class="steps" id="insteps"></div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Step 3</span>
+      <h2>再起動して初期設定</h2>
+    </div>
+    <ol class="plain" id="finish"></ol>
+  </section>
+
+  <div class="resetbar">
+    <button class="btn ghost" id="reset" type="button">進捗をリセット</button>
+  </div>
+
+  <footer>
+    <div class="disclaimer">
+      <span class="eyebrow">免責</span>
+      <p>個人が自分用に作った<strong>非公式のメモツール</strong>です。Amazon・Google・有限工房のいずれとも関係がありません。</p>
+      <p>手順と APK の選定は <a href="https://ygkb.jp/6312" target="_blank" rel="noopener">有限工房「FireタブレットにGoogle Playをインストールする方法【2026年版】」</a>（2026-01-01 版）の転記です。元記事が更新されてもこのページが追随するとは限らないため、<strong>作業前に元記事で最新版を確認してください</strong>。</p>
+      <p>利用は完全に自己責任です。<strong>これを使った結果生じたいかなる損害（端末の不具合・初期化・データ消失・アカウントの問題など）についても、作成者は一切の責任を負いません。</strong></p>
+      <p>Fire タブレットは Google Play の動作を想定しておらず、各種規約上も正しい使い方ではありません。これが原因の不具合を Amazon / Google に問い合わせないでください。</p>
+      <p>APK は APKMirror から取得します。ダウンロード画面で <strong>Verified safe to install</strong> の表示を必ず確認してください。</p>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var GAM = "Google アカウントマネージャー";
+  var GSF = "Google サービスフレームワーク";
+  var GMS = "Google Play 開発者サービス";
+  var STORE = "Google Play ストア";
+
+  var DATA = {
+    "5": {
+      android: "5.1 相当",
+      models: ["Fire 7 (2017)", "Fire HD 8 (2017)", "Fire HD 10 (2017)"],
+      apks: [
+        { jp: GAM, ver: "Google Account Manager 5.1-1743759",
+          pre: "com.google.android.gsf.login_",
+          rest: "5.1-1743759-22_minAPI21(nodpi)_apkmirror.com.apk",
+          url: "https://www.apkmirror.com/apk/google-inc/google-account-manager/google-account-manager-5-1-1743759-release/google-account-manager-5-1-1743759-android-apk-download/" },
+        { jp: GSF, ver: "Google Services Framework 5.1-1743759",
+          pre: "com.google.android.gsf_",
+          rest: "5.1-1743759-22_minAPI22(nodpi)_apkmirror.com.apk",
+          url: "https://www.apkmirror.com/apk/google-inc/google-services-framework/google-services-framework-5-1-1743759-release/google-services-framework-5-1-1743759-android-apk-download/" },
+        { jp: GMS, ver: "Google Play services 21.15.15 (020300-371058782)",
+          pre: "com.google.android.gms_",
+          rest: "21.15.15_(020300-371058782)-211515006_minAPI21(armeabi-v7a)(nodpi)_apkmirror.com.apk",
+          url: "https://www.apkmirror.com/apk/google-inc/google-play-services/google-play-services-21-15-15-release/google-play-services-21-15-15-020300-371058782-android-apk-download/" },
+        { jp: STORE, ver: "Google Play Store 25.5.27-21",
+          pre: "com.android.vending_",
+          rest: "25.5.27-21_0_PR_375135971-82552710_minAPI21(arm64-v8a,armeabi-v7a,x86,x86_64)(nodpi)_apkmirror.com.apk",
+          url: "https://www.apkmirror.com/apk/google-inc/google-play-store/google-play-store-25-5-27-release/google-play-store-25-5-27-21-0-pr-375135971-2-android-apk-download/" }
+      ]
+    },
+    "6": {
+      android: "7.1 相当",
+      models: [],
+      apks: [
+        { jp: GAM, ver: "Google Account Manager 7.1.2",
+          pre: "com.google.android.gsf.login_",
+          rest: "7.1.2-25_minAPI23(nodpi)_apkmirror.com.apk",
+          url: "https://www.apkmirror.com/apk/google-inc/google-account-manager/google-account-manager-7-1-2-release/google-account-manager-7-1-2-android-apk-download/" },
+        { jp: GSF, ver: "Google Services Framework 7.1.2",
+          pre: "com.google.android.gsf_",
+          rest: "7.1.2-25_minAPI25(nodpi)_apkmirror.com.apk",
+          url: "https://www.apkmirror.com/apk/google-inc/google-services-framework/google-services-framework-7-1-2-release/google-services-framework-7-1-2-android-apk-download/" },
+        { jp: GMS, ver: "Google Play services 14.3.66 (040300-213742215)",
+          pre: "com.google.android.gms_",
+          rest: "14.3.66_(040300-213742215)-14366015_minAPI23(armeabi-v7a)(nodpi)_apkmirror.com.apk",
+          url: "https://www.apkmirror.com/apk/google-inc/google-play-services/google-play-services-14-3-66-release/google-play-services-14-3-66-040300-213742215-android-apk-download/" },
+        { jp: STORE, ver: "Google Play Store 12.0.19-all",
+          pre: "com.android.vending_",
+          rest: "12.0.19-all_0_PR_215617186-81201900_minAPI16(armeabi,armeabi-v7a,mips,mips64,x86,x86_64)(240,320,480dpi)_apkmirror.com.apk",
+          url: "https://www.apkmirror.com/apk/google-inc/google-play-store/google-play-store-12-0-19-release/google-play-store-12-0-19-all-0-pr-215617186-android-apk-download/" }
+      ]
+    },
+    "7": {
+      android: "9 相当",
+      models: ["Fire 7 (2019)", "Fire HD 8 (2018)", "Fire HD 8 (2020)", "Fire HD 10 (2019)", "Fire HD 10 (2021)"],
+      apks: [
+        { jp: GAM, ver: "Google Account Manager 7.1.2",
+          pre: "com.google.android.gsf.login_",
+          rest: "7.1.2-25_minAPI23(nodpi)_apkmirror.com.apk",
+          url: "https://www.apkmirror.com/apk/google-inc/google-account-manager/google-account-manager-7-1-2-release/google-account-manager-7-1-2-android-apk-download/" },
+        { jp: GSF, ver: "Google Services Framework 9-6794505",
+          pre: "com.google.android.gsf_",
+          rest: "9-6794505-28_minAPI28(nodpi)_apkmirror.com.apk",
+          url: "https://www.apkmirror.com/apk/google-inc/google-services-framework/google-services-framework-9-6794505-release/google-services-framework-9-6794505-android-apk-download/" },
+        { jp: GMS, ver: "Google Play services 21.18.16 (100400-374723149)",
+          pre: "com.google.android.gms_",
+          rest: "21.18.16_(100400-374723149)-211816028_minAPI28(arm64-v8a,armeabi-v7a)(nodpi)_apkmirror.com.apk",
+          url: "https://www.apkmirror.com/apk/google-inc/google-play-services/google-play-services-21-18-16-release/google-play-services-21-18-16-100400-374723149-android-apk-download/" },
+        { jp: STORE, ver: "Google Play Store 25.5.27-21",
+          pre: "com.android.vending_",
+          rest: "25.5.27-21_0_PR_375135971-82552710_minAPI21(arm64-v8a,armeabi-v7a,x86,x86_64)(nodpi)_apkmirror.com.apk",
+          url: "https://www.apkmirror.com/apk/google-inc/google-play-store/google-play-store-25-5-27-release/google-play-store-25-5-27-21-0-pr-375135971-2-android-apk-download/" }
+      ]
+    },
+    "8": {
+      android: "11 相当",
+      models: ["Fire 7 (2022)", "Fire HD 8 (2022)", "Fire HD 8 (2024)", "Fire HD 10 (2023)", "Fire Max 11 (2023)"],
+      apks: [
+        { jp: GAM, ver: "Google Account Manager 7.1.2",
+          pre: "com.google.android.gsf.login_",
+          rest: "7.1.2-25_minAPI23(nodpi)_apkmirror.com.apk",
+          url: "https://www.apkmirror.com/apk/google-inc/google-account-manager/google-account-manager-7-1-2-release/google-account-manager-7-1-2-android-apk-download" },
+        { jp: GSF, ver: "Google Services Framework 10-6494331",
+          pre: "com.google.android.gsf_",
+          rest: "10-6494331-29_minAPI29(nodpi)_apkmirror.com.apk",
+          url: "https://www.apkmirror.com/apk/google-inc/google-services-framework/google-services-framework-10-6494331-release/google-services-framework-10-6494331-android-apk-download" },
+        { jp: GMS, ver: "Google Play services 24.41.34 (150400-685836814)",
+          pre: "com.google.android.gms_",
+          rest: "24.41.34_(150400-685836814)-244134022_minAPI30(arm64-v8a,armeabi-v7a)(nodpi)_apkmirror.com.apk",
+          url: "https://www.apkmirror.com/apk/google-inc/google-play-services/google-play-services-24-41-34-release/google-play-services-24-41-34-150400-685836814-2-android-apk-download" },
+        { jp: STORE, ver: "Google Play Store 43.2.16-29",
+          pre: "com.android.vending_",
+          rest: "43.2.16-29_0_PR_686207179-84321620_minAPI29(arm64-v8a,armeabi-v7a,x86,x86_64)(nodpi)_apkmirror.com.apk",
+          url: "https://www.apkmirror.com/apk/google-inc/google-play-store/google-play-store-43-2-16-release/google-play-store-43-2-16-29-0-pr-686207179-3-android-apk-download" }
+      ]
+    }
+  };
+
+  // Android メジャー版 → Fire OS。記事の対応表にある確定分のみ。
+  var BASE = { 5: "5", 7: "6", 9: "7", 11: "8" };
+
+  var PRE = [
+    { k: "sd",   t: "SD カードを抜いた",
+      s: "挿したまま入れると再起動後に Google アカウントへログインできなくなります" },
+    { k: "src",  t: "「不明ソースからのアプリ」を ON にした",
+      s: "設定 → セキュリティとプライバシー → 不明ソースからのアプリ" },
+    { k: "wifi", t: "Wi-Fi につながっていて、電池に余裕がある",
+      s: "開発者サービスのインストールは数分かかることがあります" }
+  ];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var el = function (tag, cls) { var n = document.createElement(tag); if (cls) n.className = cls; return n; };
+
+  var state = {};
+  var osKey = null;
+  var KEYBASE = "fire-gapps:";
+
+  function load() {
+    try { state = JSON.parse(localStorage.getItem(KEYBASE + osKey) || "{}") || {}; }
+    catch (e) { state = {}; }
+  }
+  function save() {
+    try { localStorage.setItem(KEYBASE + osKey, JSON.stringify(state)); } catch (e) {}
+  }
+
+  /* ---------- detection ---------- */
+  function detect() {
+    var ua = navigator.userAgent || "";
+    var m = ua.match(/Android\s+(\d+)(?:\.(\d+))?/i);
+    var model = ua.match(/;\s*([A-Za-z0-9_\- ]+?)\s+Build\//);
+    return {
+      ua: ua,
+      android: m ? parseInt(m[1], 10) : null,
+      androidFull: m ? (m[2] ? m[1] + "." + m[2] : m[1]) : null,
+      model: model ? model[1].trim() : null,
+      silk: /Silk/i.test(ua)
+    };
+  }
+
+  var d = detect();
+
+  function resolveAuto() {
+    if (d.android === null) return { os: null, why: "no-android" };
+    if (BASE[d.android]) return { os: BASE[d.android], why: "exact" };
+    // 表にない Android 版 = 記事より新しい機種。直下の既知ベースに寄せて注意を出す。
+    var known = [5, 7, 9, 11];
+    var pick = null, i;
+    for (i = 0; i < known.length; i++) { if (known[i] < d.android) pick = known[i]; }
+    if (pick === null) return { os: null, why: "too-old" };
+    return { os: BASE[pick], why: "guess" };
+  }
+
+  var flagsEl = $("flags");
+
+  function flag(kind, tag, html) {
+    var f = el("div", "flag " + kind);
+    var t = el("div", "tag"); t.textContent = tag;
+    var b = el("div", "body"); b.innerHTML = html;
+    f.appendChild(t); f.appendChild(b);
+    flagsEl.appendChild(f);
+  }
+
+  /* ---------- rendering ---------- */
+  function fnameNode(a) {
+    var n = el("div", "fname");
+    var b = el("b"); b.textContent = a.pre;
+    n.appendChild(b);
+    n.appendChild(document.createTextNode(a.rest));
+    return n;
+  }
+
+  function toggle(labelText, key, checked, onChange, disabled) {
+    var lab = el("label", "toggle");
+    var inp = el("input"); inp.type = "checkbox"; inp.checked = !!checked; inp.disabled = !!disabled;
+    var dot = el("span", "dot"); dot.textContent = "✓";
+    var sp = el("span"); sp.textContent = labelText;
+    lab.appendChild(inp); lab.appendChild(dot); lab.appendChild(sp);
+    inp.addEventListener("change", function () { onChange(inp.checked); });
+    return lab;
+  }
+
+  function render() {
+    var set = DATA[osKey];
+
+    // models
+    var mm = $("models");
+    mm.textContent = "";
+    if (set.models.length) {
+      set.models.forEach(function (name) {
+        var c = el("span", "chip"); c.textContent = name; mm.appendChild(c);
+      });
+    } else {
+      var c2 = el("span", "chip"); c2.textContent = "該当機種なし（記事時点）"; mm.appendChild(c2);
+    }
+
+    // preflight
+    var pf = $("preflight");
+    pf.textContent = "";
+    PRE.forEach(function (item) {
+      var lab = el("label", "check");
+      var inp = el("input"); inp.type = "checkbox"; inp.checked = !!state["pre_" + item.k];
+      var box = el("span", "box"); box.textContent = "✓";
+      var txt = el("span", "txt");
+      txt.appendChild(document.createTextNode(item.t));
+      var s = el("small"); s.textContent = item.s; txt.appendChild(s);
+      lab.appendChild(inp); lab.appendChild(box); lab.appendChild(txt);
+      inp.addEventListener("change", function () {
+        state["pre_" + item.k] = inp.checked; save(); render();
+      });
+      pf.appendChild(lab);
+    });
+
+    var preDone = PRE.every(function (i) { return state["pre_" + i.k]; });
+
+    // downloads
+    var ds = $("dlsteps");
+    ds.textContent = "";
+    if (!preDone) {
+      var g = el("div", "gate");
+      g.textContent = "上の準備を全部チェックすると、APK のリンクが出ます。";
+      ds.appendChild(g);
+    } else {
+      set.apks.forEach(function (a, i) {
+        var done = !!state["dl_" + i];
+        var card = el("div", "step" + (done ? " done" : ""));
+        var ord = el("div", "ord"); ord.textContent = String(i + 1);
+        var nm = el("div", "step-name"); nm.textContent = a.jp;
+        var vr = el("div", "step-ver"); vr.textContent = a.ver;
+        card.appendChild(ord); card.appendChild(nm); card.appendChild(vr);
+        card.appendChild(fnameNode(a));
+
+        var act = el("div", "step-actions");
+        var btn = el("a", "btn");
+        btn.href = a.url; btn.target = "_blank"; btn.rel = "noopener";
+        btn.textContent = "APKMirror で開く";
+        act.appendChild(btn);
+        act.appendChild(toggle("ダウンロード済", "dl_" + i, done, function (v) {
+          state["dl_" + i] = v; save(); render();
+        }));
+        card.appendChild(act);
+        ds.appendChild(card);
+      });
+    }
+
+    var allDl = set.apks.every(function (_, i) { return state["dl_" + i]; }) && preDone;
+
+    // installs
+    var is = $("insteps");
+    is.textContent = "";
+    if (!allDl) {
+      var g2 = el("div", "gate");
+      g2.textContent = "4本すべてダウンロードし終えると、インストール手順が開きます。";
+      is.appendChild(g2);
+    } else {
+      set.apks.forEach(function (a, i) {
+        var done = !!state["in_" + i];
+        var prevDone = i === 0 ? true : !!state["in_" + (i - 1)];
+        var card = el("div", "step" + (done ? " done" : "") + (prevDone ? "" : " locked"));
+        var ord = el("div", "ord"); ord.textContent = String(i + 1);
+        var nm = el("div", "step-name"); nm.textContent = a.jp;
+        var vr = el("div", "step-ver"); vr.textContent = a.ver;
+        card.appendChild(ord); card.appendChild(nm); card.appendChild(vr);
+        card.appendChild(fnameNode(a));
+
+        var act = el("div", "step-actions");
+        act.appendChild(toggle(done ? "インストール済" : "インストールした", "in_" + i, done, function (v) {
+          state["in_" + i] = v;
+          if (!v) { for (var j = i + 1; j < set.apks.length; j++) { state["in_" + j] = false; } }
+          save(); render();
+        }, !prevDone));
+        card.appendChild(act);
+
+        if (!prevDone) {
+          var lm = el("div", "lockmsg");
+          lm.textContent = "🔒 " + (i) + " 本目を終えてから開いてください";
+          card.appendChild(lm);
+        }
+        is.appendChild(card);
+      });
+    }
+
+    // finish
+    var fin = $("finish");
+    fin.textContent = "";
+    var allIn = set.apks.every(function (_, i) { return state["in_" + i]; });
+    var reboot = osKey === "5"
+      ? "電源ボタン長押しで電源を切り、消えたらもう一度長押しして起動"
+      : "電源ボタン長押し → 『再起動』をタップ";
+    [
+      reboot,
+      "ホーム画面に増えた【Play ストア】を開き、Google アカウントでログイン",
+      "適当なアプリを1つ入れて動作確認（直後は不安定なので、失敗したら少し待つか再起動してやり直す）",
+      "Google Play を入れ終わったあとなら SD カードを挿し直しても問題ありません"
+    ].forEach(function (t) {
+      var li = el("li"); li.textContent = t; fin.appendChild(li);
+    });
+    if (!allIn) {
+      var note = el("li");
+      note.style.color = "var(--text-faint)";
+      note.textContent = "（4本すべてインストールしてから再起動してください）";
+      fin.appendChild(note);
+    }
+
+    // progress
+    var n = 0, k;
+    for (k = 0; k < set.apks.length; k++) { if (state["dl_" + k]) n++; if (state["in_" + k]) n++; }
+    $("pcount").textContent = String(n);
+    $("pbar").style.width = (n / 8 * 100) + "%";
+  }
+
+  /* ---------- boot ---------- */
+  function applyOs(key, mode) {
+    osKey = key;
+    load();
+
+    var set = DATA[key];
+    $("osnum").textContent = key;
+    $("osnum").className = "osnum";
+    $("oslead").textContent = "Fire OS " + key + " 用の APK を表示中";
+    $("ossub").textContent = "Android " + set.android +
+      (mode === "manual" ? "／手動選択" : mode === "guess" ? "／推定" : "／自動判定");
+    render();
+  }
+
+  function showUnknown(msg) {
+    $("osnum").textContent = "?";
+    $("osnum").className = "osnum unknown";
+    $("oslead").textContent = "自動判定できません";
+    $("ossub").textContent = msg;
+    ["preflight", "dlsteps", "insteps", "finish"].forEach(function (id) { $(id).textContent = ""; });
+    var g = el("div", "gate");
+    g.textContent = "上のプルダウンから Fire OS を選んでください。";
+    $("dlsteps").appendChild(g);
+    $("pcount").textContent = "0";
+    $("pbar").style.width = "0%";
+  }
+
+  $("ua").textContent = d.ua;
+
+  var auto = resolveAuto();
+
+  if (auto.os) {
+    applyOs(auto.os, auto.why === "guess" ? "guess" : "auto");
+  } else {
+    showUnknown(d.android === null
+      ? "この端末は Android ではありません（Fire タブレットの Silk ブラウザで開くと自動判定します）"
+      : "Android " + d.androidFull + " は記事の対応表にありません");
+  }
+
+  if (auto.why === "guess") {
+    flag("warn", "推定",
+      "Android " + d.androidFull + " は元記事の対応表に無い新しい版です。<b>Fire OS " + auto.os +
+      "</b> 用として表示していますが、設定 → デバイスオプション → システムアップデート で Fire OS の版を確認してください。新機種に旧機種用の APK を入れる分は支障ありませんが、逆は正常動作しない恐れがあります。");
+  }
+  if (auto.os === "8" || (!auto.os)) {
+    flag("warn", "Fire OS 8",
+      "Fire OS 8 の場合は先に <b>8.3.1.3 以上</b> まで本体をアップデートしておいてください。");
+  }
+  flag("danger", "必ず確認",
+    "APKMirror の『DOWNLOAD APK』ボタンのそばに <b>Verified safe to install</b> と出ていることを毎回確認してください。出ていなければ改ざんの恐れがあるのでダウンロードしないでください。");
+  if (d.android !== null && !d.silk) {
+    flag("info", "参考",
+      "Silk ブラウザ以外で開いています。元記事の手順は Silk ブラウザ前提です（ダウンロード一覧の開き方が異なります）。");
+  }
+
+  $("ossel").addEventListener("change", function (e) {
+    var v = e.target.value;
+    if (v === "auto") {
+      if (auto.os) { applyOs(auto.os, auto.why === "guess" ? "guess" : "auto"); }
+      else { showUnknown("自動判定できませんでした"); }
+    } else {
+      applyOs(v, "manual");
+    }
+  });
+
+  $("reset").addEventListener("click", function () {
+    if (!osKey) { return; }
+    state = {}; save(); render();
+  });
+})();
+</script>
+</body>
+</html>
