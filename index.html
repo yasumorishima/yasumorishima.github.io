@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Yasunori Morishima — yasumorishima.github.io</title>
+<meta name="description" content="盛島康徳の個人サイト。ここに置いているツールと、ブログ・プロフィールへの入口です。">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body, h1, h2, h3, p, ol, ul, figure { margin: 0; }
+  ul { padding: 0; list-style: none; }
+
+  :root {
+    --paper:      #eef1f4;
+    --card:       #ffffff;
+    --card-edge:  #d7dde4;
+    --text:       #222c37;
+    --text-dim:   #5c6874;
+    --text-faint: #8a959f;
+    --ember:      #e05a1c;
+    --signal:     #1a7a99;
+    --shadow:     0 1px 2px rgba(20,26,33,.06), 0 6px 20px rgba(20,26,33,.05);
+    --jp: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "BIZ UDPGothic",
+          "Yu Gothic UI", "Yu Gothic", "Noto Sans JP", "Meiryo", system-ui, sans-serif;
+    --mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas,
+            "Roboto Mono", "Droid Sans Mono", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:#10161d; --card:#1a222c; --card-edge:#2c3743; --text:#dde4ea;
+      --text-dim:#9aa7b3; --text-faint:#6d7b88; --ember:#ff7a3d; --signal:#4fb6d4;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.28);
+    }
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--text);
+    font-family: var(--jp);
+    font-size: 16px;
+    line-height: 1.75;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap {
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 40px 18px 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 34px;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  h1 { font-size: 26px; font-weight: 800; letter-spacing: -.02em; text-wrap: balance; }
+  h1 small { display: block; font-size: 14px; font-weight: 400; color: var(--text-dim); letter-spacing: 0; margin-top: 2px; }
+  h2 { font-size: 15px; font-weight: 800; letter-spacing: -.01em; }
+  p  { color: var(--text-dim); font-size: 14.5px; }
+
+  header { display: flex; flex-direction: column; gap: 10px; }
+
+  section { display: flex; flex-direction: column; gap: 12px; }
+  .sec-head { display: flex; flex-direction: column; gap: 1px; }
+
+  .card {
+    display: block;
+    background: var(--card);
+    border: 1px solid var(--card-edge);
+    border-left: 3px solid var(--ember);
+    border-radius: 3px;
+    box-shadow: var(--shadow);
+    padding: 16px 18px;
+    text-decoration: none;
+    color: inherit;
+  }
+  .card:hover { border-color: var(--ember); }
+  .card:focus-visible { outline: 3px solid var(--signal); outline-offset: 2px; }
+  .card .name { font-size: 16.5px; font-weight: 700; }
+  .card .desc { font-size: 13.5px; color: var(--text-dim); margin-top: 3px; line-height: 1.65; }
+  .card .path {
+    font-family: var(--mono); font-size: 11.5px; color: var(--text-faint);
+    margin-top: 8px; word-break: break-all;
+  }
+  .card .note { font-size: 12px; color: var(--text-faint); margin-top: 6px; }
+
+  .links { display: flex; flex-wrap: wrap; gap: 8px; }
+  .links a {
+    font-size: 13.5px; font-weight: 700; text-decoration: none;
+    color: var(--signal);
+    border: 1px solid var(--card-edge);
+    border-radius: 999px;
+    padding: 7px 14px;
+    background: var(--card);
+  }
+  .links a:hover { border-color: var(--signal); }
+  .links a:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
+
+  footer {
+    border-top: 1px solid var(--card-edge);
+    padding-top: 16px;
+    font-size: 12.5px;
+    color: var(--text-faint);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <span class="eyebrow">yasumorishima.github.io</span>
+    <h1>Yasunori Morishima
+      <small>盛島康徳 — Manufacturing Engineer &amp; Data Analyst</small>
+    </h1>
+    <p>このドメインに置いているものの入口です。</p>
+  </header>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Tools</span>
+      <h2>ツール</h2>
+    </div>
+    <a class="card" href="/fire-gapps/">
+      <div class="name">Fire タブレット Google Play 導入ヘルパー</div>
+      <div class="desc">Fire タブレットで開くと Fire OS を自動判定し、必要な APK 4本をインストール順どおりに表示します。順番と進捗を画面が覚えます。</div>
+      <div class="path">/fire-gapps/</div>
+      <div class="note">非公式・自己責任のツールです（詳細はページ末尾の免責を参照）</div>
+    </a>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Blog</span>
+      <h2>ブログ</h2>
+    </div>
+    <a class="card" href="/quarto-blog/">
+      <div class="name">Quarto Blog</div>
+      <div class="desc">データ分析・OSS・自動化まわりの技術記事（英語）。</div>
+      <div class="path">/quarto-blog/</div>
+    </a>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Elsewhere</span>
+      <h2>ほかの場所</h2>
+    </div>
+    <div class="links">
+      <a href="https://github.com/yasumorishima">GitHub</a>
+      <a href="https://zenn.dev/shogaku">Zenn</a>
+      <a href="https://dev.to/yasumorishima">DEV.to</a>
+      <a href="https://www.kaggle.com/yasunorim">Kaggle</a>
+    </div>
+  </section>
+
+  <footer>プロフィールと制作物の一覧は <a href="https://github.com/yasumorishima">GitHub</a> にまとめています。</footer>
+</div>
+</body>
+</html>
